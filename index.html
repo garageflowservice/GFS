@@ -1,60 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hu">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Dashboard</title>
+    <title>Szerviz Nyilvántartó</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        /* ALAPBEÁLLÍTÁSOK - Teljes képernyő zárolása */
+        /* ALAPBEÁLLÍTÁSOK */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
         
-        html, body {
-            width: 100%; 
-            height: 100dvh; /* vh helyett dvh a mobilböngészők miatt */
-            overflow: hidden; /* Megakadályozza a böngésző görgetését, csak a panel göröghet! */
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
-            display: flex; justify-content: center; align-items: center;
+            display: flex; 
+            flex-direction: column;
+            min-height: 100vh; /* Mindig kitölti a képernyőt */
             background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            background-attachment: fixed; /* A háttér stabil marad görgetéskor is */
             position: relative;
+            padding: 40px 20px 20px 20px; 
         }
 
-        /* Háttér aurák */
-        body::before, body::after {
-            content: ''; position: absolute; width: 400px; height: 400px; border-radius: 50%;
+        /* Háttér aurák - Dedikált elemekként a stabilitásért */
+        .aura {
+            position: fixed; width: 400px; height: 400px; border-radius: 50%;
             filter: blur(90px); z-index: 0; opacity: 0.4; pointer-events: none;
         }
-        body::before { background: #0071e3; top: 10%; left: 15%; }
-        body::after { background: #bf5af2; bottom: 10%; right: 15%; }
+        .aura.blue { background: #0071e3; top: 10%; left: 15%; }
+        .aura.purple { background: #bf5af2; bottom: 10%; right: 15%; }
 
-        /* FŐ TARTÓ - Maximális méret és belső görgetés */
+        /* FŐ TARTÓ - Stabil, együtt nő a tartalommal */
         .glass-panel {
             position: relative; 
             z-index: 1; 
             
-            width: 95%; /* Kitölti a képernyőt vízszintesen */
-            max-width: 600px; /* Szélesebb maximális határ */
-            
-            height: auto; /* Alkalmazkodik a tartalomhoz */
-            max-height: 90dvh; /* Hatalmas monitorokon sem nyúlik a végtelenségig, de mobilokon sem lóg le */
-            overflow-y: auto; /* Belső görgetés engedélyezése */
+            width: 100%; 
+            max-width: 600px; 
+            margin: auto; /* Középre igazítja függőlegesen, de engedi nőni */
             
             background: rgba(255, 255, 255, 0.08); 
             backdrop-filter: blur(30px) saturate(190%);
             -webkit-backdrop-filter: blur(30px) saturate(190%);
             border: 1px solid rgba(255, 255, 255, 0.12); 
             border-radius: 24px; 
-            padding: 40px 35px 50px 35px; /* Pici extra hely alul a biztonság kedvéért */
+            padding: 40px 35px; 
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.15);
         }
-
-        /* Elegáns görgetősáv a panelhez */
-        .glass-panel::-webkit-scrollbar { width: 6px; }
-        .glass-panel::-webkit-scrollbar-track { background: transparent; }
-        .glass-panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
-        .glass-panel::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
 
         /* Tipográfia */
         h1 { color: #ffffff; font-size: 28px; font-weight: 600; text-align: center; margin-bottom: 6px; letter-spacing: -0.8px; }
@@ -91,116 +84,125 @@
         .instant-btn { background: rgba(0, 0, 0, 0.2); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.08); }
         .instant-btn:hover { background: rgba(0, 0, 0, 0.4); transform: translateY(-1px); border-color: rgba(255, 255, 255, 0.15); }
 
-        hhr { border: 0; height: 1px; background: rgba(255, 255, 255, 0.08); margin: 35px 0; display: block; }
+        /* Szabványosított elválasztóvonal */
+        hr.divider { border: 0; height: 1px; background: rgba(255, 255, 255, 0.08); margin: 35px 0; display: block; }
 
         #successScreen, #dataScreen { display: none; }
         
-        /* Középre igazítás a sikeres képernyőn a nagy ablakban */
-        .success-content { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 50vh; }
-        
+        /* Sikeres képernyő */
+        .success-content { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 0; }
         .success-icon { font-size: 50px; color: #34c759; margin-bottom: 15px; text-shadow: 0 0 20px rgba(52, 199, 89, 0.4); text-align: center; }
         .success-title { color: #ffffff; font-size: 22px; font-weight: 500; margin-bottom: 10px; text-align: center; letter-spacing: -0.5px; }
         .success-text { color: rgba(255, 255, 255, 0.6); font-size: 14px; font-weight: 300; margin-bottom: 35px; line-height: 1.6; text-align: center; }
 
         /* Adatkártyák */
         .data-list-container { 
-            /* Alkalmazkodik az ablak méretéhez */
-            height: calc(100% - 120px); 
-            min-height: 300px;
-            overflow-y: auto; margin-bottom: 25px; padding-right: 5px; 
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px; 
         }
-        .data-list-container::-webkit-scrollbar { width: 5px; }
-        .data-list-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
         
-        .data-card { background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; padding: 18px; margin-bottom: 12px; }
+        .data-card { background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; padding: 18px; }
         .card-date { color: #4da3ff; font-weight: 500; font-size: 13px; margin-bottom: 6px; letter-spacing: 0.5px; }
         .card-km { color: #ffffff; font-size: 16px; font-weight: 400; margin-bottom: 8px; }
         .card-details { color: rgba(255, 255, 255, 0.6); font-size: 13px; line-height: 1.5; font-weight: 300; }
 
+        /* Lábléc dizájn */
+        .site-footer {
+            margin-top: auto; /* Mindig letolja az aljára */
+            padding-top: 40px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 11px;
+            text-align: center;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+
         /* --- MOBIL NÉZET OPTIMALIZÁLÁSA --- */
         @media (max-width: 480px) {
-            .glass-panel {
-                width: 90%;
-                max-height: 92dvh;
-                padding: 30px 20px 40px 20px; /* Kisebb oldalsó és felső margók */
-            }
-            
+            body { padding: 20px 15px; }
+            .glass-panel { padding: 30px 20px; }
             h1 { font-size: 24px; }
-            
-            .form-group { margin-bottom: 16px; } /* Kisebb sorközök */
-            
-            /* Kisebb űrlapmezők és gombok a jobb helykihasználásért */
-            input[type="text"], input[type="email"], input[type="number"], input[type="date"], select, button {
-                padding: 12px 14px; 
-            }
+            .form-group { margin-bottom: 16px; } 
+            input[type="text"], input[type="email"], input[type="number"], input[type="date"], select, button { padding: 12px 14px; }
         }
     </style>
 </head>
 <body>
 
+    <div class="aura blue"></div>
+    <div class="aura purple"></div>
+
     <div class="glass-panel" id="mainDashboard">
         <h1>GarageFlow</h1>
-        <div class="subtitle">Smart Service Tracker</div>
+        <div class="subtitle">Okos Szerviz Nyilvántartó</div>
         
         <div class="form-group">
-            <label for="brandSelect">Vehicle Brand</label>
+            <label for="brandSelect">Gépjármű Márkája</label>
             <select id="brandSelect">
                 <option value="Audi">Audi</option>
                 <option value="Ford">Ford</option>
                 <option value="Volkswagen">Volkswagen</option>
             </select>
         </div>
-        <hhr>
+        
+        <hr class="divider">
 
-        <div class="section-title">✦ Record New Service</div>
+        <div class="section-title">✦ Új Szerviz Rögzítése</div>
         <div class="form-group">
-            <label for="serviceDate">Service Date</label>
+            <label for="serviceDate">Szerviz Dátuma</label>
             <div class="date-row">
                 <input type="date" id="serviceDate">
-                <button type="button" class="secondary-btn" onclick="setToday()">Today</button>
+                <button type="button" class="secondary-btn" onclick="setToday()">Ma</button>
             </div>
         </div>
         <div class="form-group">
-            <label for="mileage">Mileage (km)</label>
-            <input type="number" id="mileage" placeholder="E.g. 150000">
+            <label for="mileage">Kilométeróra állása (km)</label>
+            <input type="number" id="mileage" placeholder="Pl. 150000">
         </div>
         <div class="form-group">
-            <label for="details">Performed Work / Details</label>
-            <input type="text" id="details" placeholder="E.g. Oil change, brake pads">
+            <label for="details">Elvégzett Munka / Részletek</label>
+            <input type="text" id="details" placeholder="Pl. Olajcsere, fékbetétek">
         </div>
-        <button class="primary-btn" id="saveBtn" onclick="submitData()">Save Data</button>
+        <button class="primary-btn" id="saveBtn" onclick="submitData()">Adatok Mentése</button>
 
-        <hhr>
+        <hr class="divider">
 
-        <div class="section-title">✦ Request Digital Log</div>
+        <div class="section-title">✦ Digitális Napló Lekérése</div>
         <div class="form-group" style="margin-bottom: 15px;">
-            <label for="userEmail">Target E-mail Address</label>
-            <input type="email" id="userEmail" placeholder="example@email.com">
+            <label for="userEmail">Cél E-mail Cím</label>
+            <input type="email" id="userEmail" placeholder="pelda@email.com">
         </div>
         
-        <button class="retrieve-btn" id="emailBtn" onclick="retrieveDataEmail()">Send via E-mail</button>
-        <button class="instant-btn" id="instantBtn" onclick="fetchDataInstant()">View Data Instantly</button>
+        <button class="retrieve-btn" id="emailBtn" onclick="retrieveDataEmail()">Küldés E-mailben</button>
+        <button class="instant-btn" id="instantBtn" onclick="fetchDataInstant()">Adatok Azonnali Megtekintése</button>
     </div>
 
     <div class="glass-panel" id="successScreen">
         <div class="success-content">
             <div class="success-icon">✓</div>
-            <div class="success-title">Registration Successful</div>
-            <div class="success-text">The service information has been securely saved to the database.</div>
-            <button class="secondary-btn" style="width: 100%; padding: 15px;" onclick="showDashboard()">Back to Dashboard</button>
+            <div class="success-title">Sikeres Rögzítés</div>
+            <div class="success-text">A szerviz információk biztonságosan mentésre kerültek az adatbázisba.</div>
+            <button class="secondary-btn" style="width: 100%; padding: 15px;" onclick="showDashboard()">Vissza a Főoldalra</button>
         </div>
     </div>
 
     <div class="glass-panel" id="dataScreen">
-        <div class="section-title" id="dataTitle" style="justify-content: center; font-size: 15px; margin-bottom: 25px; letter-spacing: 1.5px;">✦ Service History</div>
+        <div class="section-title" id="dataTitle" style="justify-content: center; font-size: 15px; margin-bottom: 25px; letter-spacing: 1.5px;">✦ Szerviztörténet</div>
         
         <div class="data-list-container" id="dataContainer"></div>
         
-        <button class="instant-btn" style="width: 100%; padding: 15px; margin-top: 10px;" onclick="showDashboard()">Back to Dashboard</button>
+        <button class="instant-btn" style="width: 100%; padding: 15px; margin-top: 10px;" onclick="showDashboard()">Vissza a Főoldalra</button>
+    </div>
+
+    <div class="site-footer">
+        Edited by András Vig | 2026 | Verzió: 1.0
     </div>
 
     <script>
-        // FONTOS: IDE ILLESZD BE A JELENLEGI APPS SCRIPT URL-T
         const scriptUrl = 'https://script.google.com/macros/s/AKfycbxq14m_BR816KFV1ijm9IupT4gZjr7cE49YcNEljw9SUlzA6ElxV1uu8de5tvV-K8BEIA/exec';
 
         function getSelectedBrand() { return document.getElementById('brandSelect').value; }
@@ -217,6 +219,7 @@
             document.getElementById('successScreen').style.display = 'none';
             document.getElementById('dataScreen').style.display = 'none';
             document.getElementById('mainDashboard').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function submitData() {
@@ -225,11 +228,11 @@
             let mileage = document.getElementById('mileage').value;
             let details = document.getElementById('details').value;
 
-            if(!serviceDate || !mileage || !details) { alert("Please fill in all details!"); return; }
+            if(!serviceDate || !mileage || !details) { alert("Kérlek, tölts ki minden adatot!"); return; }
 
             let btn = document.getElementById('saveBtn');
             let originalText = btn.innerText;
-            btn.innerText = "Connecting..."; btn.disabled = true;
+            btn.innerText = "Csatlakozás..."; btn.disabled = true;
 
             fetch(scriptUrl, {
                 method: 'POST',
@@ -245,17 +248,18 @@
                 document.getElementById('mileage').value = '';
                 document.getElementById('details').value = '';
                 btn.innerText = originalText; btn.disabled = false;
-            }).catch(error => { console.error(error); alert("Error saving."); btn.innerText = originalText; btn.disabled = false; });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }).catch(error => { console.error(error); alert("Hiba a mentés során."); btn.innerText = originalText; btn.disabled = false; });
         }
 
         function retrieveDataEmail() {
             let brand = getSelectedBrand();
             let email = document.getElementById('userEmail').value;
-            if(!email) { alert("Please provide a valid e-mail address!"); return; }
+            if(!email) { alert("Kérlek, adj meg egy érvényes e-mail címet!"); return; }
 
             let btn = document.getElementById('emailBtn');
             let originalText = btn.innerText;
-            btn.innerText = `Sending...`; btn.disabled = true;
+            btn.innerText = `Küldés...`; btn.disabled = true;
 
             fetch(scriptUrl, {
                 method: 'POST',
@@ -266,7 +270,7 @@
             .then(data => {
                 alert(data);
                 btn.innerText = originalText; btn.disabled = false;
-            }).catch(error => { console.error(error); alert("Error sending."); btn.innerText = originalText; btn.disabled = false; });
+            }).catch(error => { console.error(error); alert("Hiba a küldés során."); btn.innerText = originalText; btn.disabled = false; });
         }
 
         function fetchDataInstant() {
@@ -274,7 +278,7 @@
             let btn = document.getElementById('instantBtn');
             let originalText = btn.innerText;
             
-            btn.innerText = `Loading data...`; 
+            btn.innerText = `Adatok betöltése...`; 
             btn.disabled = true;
 
             fetch(scriptUrl, {
@@ -290,26 +294,26 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert("An error occurred while fetching the data.");
+                alert("Hiba történt az adatok lekérése során.");
                 btn.innerText = originalText; 
                 btn.disabled = false;
             });
         }
 
         function displayDataOnScreen(brand, data) {
-            document.getElementById('dataTitle').innerText = `✦ ${brand} Service History`;
+            document.getElementById('dataTitle').innerText = `✦ ${brand} Szerviztörténet`;
             let container = document.getElementById('dataContainer');
             container.innerHTML = ''; 
 
             if (data.length === 0) {
-                container.innerHTML = '<p style="color: rgba(255,255,255,0.4); text-align: center; margin-top: 30px; font-weight: 300;">No records found for this brand.</p>';
+                container.innerHTML = '<p style="color: rgba(255,255,255,0.4); text-align: center; margin-top: 30px; font-weight: 300;">Nem találhatók bejegyzések ehhez a márkához.</p>';
             } else {
                 data.reverse().forEach(item => {
                     let card = document.createElement('div');
                     card.className = 'data-card';
                     card.innerHTML = `
                         <div class="card-date">${item.date}</div>
-                        <div class="card-km">Mileage: ${item.km}</div>
+                        <div class="card-km">Kilométer: ${item.km}</div>
                         <div class="card-details">${item.details}</div>
                     `;
                     container.appendChild(card);
@@ -319,6 +323,7 @@
             document.getElementById('mainDashboard').style.display = 'none';
             document.getElementById('successScreen').style.display = 'none';
             document.getElementById('dataScreen').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>
 </body>
